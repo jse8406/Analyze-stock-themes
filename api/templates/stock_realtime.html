@@ -1,29 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>실시간 주가 보기</title>
+    <h1>실시간 주가 보기</h1>
+
+    <div>
+        <input type="text" id="stock-code-input" placeholder="종목코드 (예: 005930)" value="005930">
+        <button onclick="connectWS()">연결</button>
+        <button onclick="disconnectWS()">연결 끊기</button>
+    </div>
+
+    <div id="status">연결 대기중...</div>
+    <pre id="stock-data">데이터 수신 대기중...</pre>
+
     <script>
         let socket;
+
+        function disconnectWS() {
+            if (socket) {
+                socket.close();
+                socket = null;
+                document.getElementById('status').textContent = '연결 종료됨';
+            }
+        }
+
         function connectWS() {
-            socket = new WebSocket('ws://' + window.location.host + '/ws/stock/');
-            socket.onmessage = function(event) {
+            const stockCode = document.getElementById('stock-code-input').value;
+            if (!stockCode) {
+                alert('종목코드를 입력해주세요.');
+                return;
+            }
+
+            // 기존 연결이 있다면 종료
+            disconnectWS();
+
+            document.getElementById('status').textContent = '연결 시도 중...';
+
+            socket = new WebSocket('ws://' + window.location.host + '/ws/stock/' + stockCode + '/');
+
+            socket.onmessage = function (event) {
                 const data = event.data;
-                document.getElementById('stock-data').textContent = data;
+                // 보기 좋게 포맷팅 (선택사항)
+                try {
+                    const parsed = JSON.parse(data);
+                    document.getElementById('stock-data').textContent = JSON.stringify(parsed, null, 2);
+                } catch (e) {
+                    document.getElementById('stock-data').textContent = data;
+                }
             };
-            socket.onopen = function() {
-                document.getElementById('status').textContent = 'WebSocket 연결됨';
+
+            socket.onopen = function () {
+                document.getElementById('status').textContent = 'WebSocket 연결됨 (' + stockCode + ')';
             };
-            socket.onclose = function() {
-                document.getElementById('status').textContent = 'WebSocket 연결 종료';
+
+            socket.onclose = function () {
+                // 의도적인 종료가 아닐 때만 메시지 표시
+                if (document.getElementById('status').textContent !== '연결 종료됨') {
+                    document.getElementById('status').textContent = 'WebSocket 연결 끊김';
+                }
+            };
+
+            socket.onerror = function (error) {
+                console.error('WebSocket Error: ', error);
+                document.getElementById('status').textContent = 'WebSocket 에러 발생';
             };
         }
-        window.onload = connectWS;
     </script>
-</head>
-<body>
-    <h1>실시간 주가 보기</h1>
-    <div id="status">연결 중...</div>
-    <pre id="stock-data">데이터 수신 대기중...</pre>
-</body>
+
 </html>

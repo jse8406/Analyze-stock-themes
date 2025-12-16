@@ -18,6 +18,7 @@ STOCK_CODE = "005930"  # 예시: 삼성전자
 
 class StockConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        self.stock_code = self.scope['url_route']['kwargs']['stock_code']
         await self.accept()
         self.keep_running = True
         self.stock_task = asyncio.create_task(self.send_realtime_stock())
@@ -77,7 +78,7 @@ class StockConsumer(AsyncWebsocketConsumer):
                     "body": {
                         "input": {
                             "tr_id": TR_ID,
-                            "tr_key": STOCK_CODE
+                            "tr_key": self.stock_code
                         }
                     }
                 }
