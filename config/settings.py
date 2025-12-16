@@ -40,8 +40,20 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'api',
+    'channels',
 ]
 
+ASGI_APPLICATION = 'config.asgi.application'
+
+# Redis를 채널 레이어 백엔드로 사용 (실시간 메시지 브로커)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('127.0.0.1', 6379)],
+        },
+    },
+}
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

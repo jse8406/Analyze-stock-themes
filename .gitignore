@@ -44,3 +44,6 @@ staticfiles/
 # Environment variables
 .env
 .env.local
+
+# redis
+redis-server.exe

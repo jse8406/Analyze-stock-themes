@@ -8,4 +8,5 @@ router = DefaultRouter()
 urlpatterns = [
     path('', include(router.urls)),
     path('hello/', views.hello_world, name='hello_world'),
+    path('stock/', views.StockRealtimeView.as_view(), name='stock_realtime'),
 ]

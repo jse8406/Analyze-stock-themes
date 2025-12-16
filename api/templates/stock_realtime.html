@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>실시간 주가 보기</title>
+    <script>
+        let socket;
+        function connectWS() {
+            socket = new WebSocket('ws://' + window.location.host + '/ws/stock/');
+            socket.onmessage = function(event) {
+                const data = event.data;
+                document.getElementById('stock-data').textContent = data;
+            };
+            socket.onopen = function() {
+                document.getElementById('status').textContent = 'WebSocket 연결됨';
+            };
+            socket.onclose = function() {
+                document.getElementById('status').textContent = 'WebSocket 연결 종료';
+            };
+        }
+        window.onload = connectWS;
+    </script>
+</head>
+<body>
+    <h1>실시간 주가 보기</h1>
+    <div id="status">연결 중...</div>
+    <pre id="stock-data">데이터 수신 대기중...</pre>
+</body>
+</html>
