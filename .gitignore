@@ -47,3 +47,4 @@ staticfiles/
 
 # redis
 redis-server.exe
+dump.rdb

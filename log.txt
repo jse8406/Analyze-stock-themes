@@ -1,0 +1,74 @@
+INFO:     127.0.0.1:59536 - "WebSocket /ws/stock/000660/" [accepted]
+[StockConsumer] Client connected to stock_000660
+[StockMaster] New subscription added: 000660
+INFO:     connection open
+[StockMaster] Starting master connection...
+[StockMaster] Connected to KIS WebSocket!
+[StockMaster] Request Body (Hoga):
+{
+  "header": {
+    "approval_key": "864f6803-af5a-4fd7-86c5-768f1d6d11b2",
+    "custtype": "P",
+    "tr_type": "1",
+    "content-type": "utf-8"
+  },
+  "body": {
+    "input": {
+      "tr_id": "H0UNASP0",
+      "tr_key": "000660"
+    }
+  }
+}
+[StockMaster] Request Body (Exec):
+{
+  "header": {
+    "approval_key": "864f6803-af5a-4fd7-86c5-768f1d6d11b2",
+    "custtype": "P",
+    "tr_type": "1",
+    "content-type": "utf-8"
+  },
+  "body": {
+    "input": {
+      "tr_id": "H0STCNT0",
+      "tr_key": "000660"
+    }
+  }
+}
+[StockMaster] Sent subscription for 000660
+INFO:     connection closed
+[StockConsumer] Client disconnected from stock_000660
+INFO:     127.0.0.1:53757 - "WebSocket /ws/stock/005930/" [accepted]
+[StockConsumer] Client connected to stock_005930
+[StockMaster] New subscription added: 005930
+[StockMaster] Request Body (Hoga):
+{
+  "header": {
+    "approval_key": "864f6803-af5a-4fd7-86c5-768f1d6d11b2",
+    "custtype": "P",
+    "tr_type": "1",
+    "content-type": "utf-8"
+  },
+  "body": {
+    "input": {
+      "tr_id": "H0UNASP0",
+      "tr_key": "005930"
+    }
+  }
+}
+[StockMaster] Request Body (Exec):
+{
+  "header": {
+    "approval_key": "864f6803-af5a-4fd7-86c5-768f1d6d11b2",
+    "custtype": "P",
+    "tr_type": "1",
+    "content-type": "utf-8"
+  },
+  "body": {
+    "input": {
+      "tr_id": "H0STCNT0",
+      "tr_key": "005930"
+    }
+  }
+}
+[StockMaster] Sent subscription for 005930
+INFO:     connection open
