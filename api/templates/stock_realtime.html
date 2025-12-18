@@ -3,70 +3,72 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>실시간 주가 보기</title>
-    <h1>실시간 주가 보기</h1>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 호가</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'api/css/stock.css' %}">
+</head>
 
-    <div>
-        <input type="text" id="stock-code-input" placeholder="종목코드 (예: 005930)" value="005930">
-        <button onclick="connectWS()">연결</button>
-        <button onclick="disconnectWS()">연결 끊기</button>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="control-panel">
+                <input type="text" id="stock-code-input" placeholder="종목코드 (예: 005930)" value="005930">
+                <button id="connect-btn">조회</button>
+                <button id="disconnect-btn" class="disconnect">중단</button>
+            </div>
+            <div id="status" style="font-size: 13px; color: #8b95a1;">연결 대기중...</div>
+        </div>
+
+        <div class="hoga-container">
+            <!-- 매도 호가 (위) -->
+            <table>
+                <colgroup>
+                    <col width="40%">
+                    <col width="30%">
+                    <col width="30%">
+                </colgroup>
+                <tbody id="ask-table-body">
+                    <!-- JS로 렌더링 -->
+                </tbody>
+            </table>
+
+            <!-- 현재가 정보 (중간) -->
+            <div class="current-status">
+                <div id="current-price" class="current-price-value">-</div>
+                <div id="current-price-diff" class="diff">-</div>
+            </div>
+
+            <!-- 매수 호가 (아래) -->
+            <table>
+                <colgroup>
+                    <col width="30%">
+                    <col width="30%">
+                    <col width="40%">
+                </colgroup>
+                <tbody id="bid-table-body">
+                    <!-- JS로 렌더링 -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <div id="status">연결 대기중...</div>
-    <pre id="stock-data">데이터 수신 대기중...</pre>
-
-    <script>
-        let socket;
-
-        function disconnectWS() {
-            if (socket) {
-                socket.close();
-                socket = null;
-                document.getElementById('status').textContent = '연결 종료됨';
-            }
-        }
-
-        function connectWS() {
-            const stockCode = document.getElementById('stock-code-input').value;
-            if (!stockCode) {
-                alert('종목코드를 입력해주세요.');
-                return;
-            }
-
-            // 기존 연결이 있다면 종료
-            disconnectWS();
-
-            document.getElementById('status').textContent = '연결 시도 중...';
-
-            socket = new WebSocket('ws://' + window.location.host + '/ws/stock/' + stockCode + '/');
-
-            socket.onmessage = function (event) {
-                const data = event.data;
-                // 보기 좋게 포맷팅 (선택사항)
-                try {
-                    const parsed = JSON.parse(data);
-                    document.getElementById('stock-data').textContent = JSON.stringify(parsed, null, 2);
-                } catch (e) {
-                    document.getElementById('stock-data').textContent = data;
-                }
-            };
-
-            socket.onopen = function () {
-                document.getElementById('status').textContent = 'WebSocket 연결됨 (' + stockCode + ')';
-            };
-
-            socket.onclose = function () {
-                // 의도적인 종료가 아닐 때만 메시지 표시
-                if (document.getElementById('status').textContent !== '연결 종료됨') {
-                    document.getElementById('status').textContent = 'WebSocket 연결 끊김';
-                }
-            };
-
-            socket.onerror = function (error) {
-                console.error('WebSocket Error: ', error);
-                document.getElementById('status').textContent = 'WebSocket 에러 발생';
-            };
-        }
-    </script>
+    <div class="trade-container">
+        <h3>실시간 체결</h3>
+        <table class="trade-table">
+            <thead>
+                <tr>
+                    <th>시간</th>
+                    <th>가격</th>
+                    <th>체결량</th>
+                </tr>
+            </thead>
+            <tbody id="trade-list">
+                <!-- JS insert -->
+            </tbody>
+        </table>
+    </div>
+    <script src="{% static 'api/js/stock_realtime.js' %}"></script>
+</body>
 
 </html>

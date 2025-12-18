@@ -82,3 +82,7 @@ python manage.py test api
 3. `api/views.py`에 ViewSet 또는 APIView 구현
 4. `api/urls.py`에 라우터 등록
 5. 마이그레이션 생성 및 적용
+
+
+
+왜 SK하이닉스는 위아래 10호가 데이터를 받아오질 못하지????

@@ -13,6 +13,8 @@ import django
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 from django.core.asgi import get_asgi_application
+from django.conf import settings
+from django.contrib.staticfiles.handlers import ASGIStaticFilesHandler
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
@@ -27,3 +29,7 @@ application = ProtocolTypeRouter({
 		)
 	),
 })
+
+# staticFileHandler로 감싸야 uvicorn으로 실행해도 static 파일을 찾을 수 있음
+if settings.DEBUG:
+    application = ASGIStaticFilesHandler(application)
