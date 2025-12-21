@@ -19,13 +19,13 @@ from django.contrib.staticfiles.handlers import ASGIStaticFilesHandler
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-import api.routing
+import stock_price.routing
 
 application = ProtocolTypeRouter({
 	"http": get_asgi_application(),
 	"websocket": AuthMiddlewareStack(
 		URLRouter(
-			api.routing.websocket_urlpatterns
+			stock_price.routing.websocket_urlpatterns
 		)
 	),
 })

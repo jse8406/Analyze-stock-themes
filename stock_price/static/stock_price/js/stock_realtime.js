@@ -10,7 +10,7 @@ const StockApp = {
         this.cacheDOM();
         this.bindEvents();
         // 종목 리스트 json 불러오기
-        fetch('/static/api/stock_list.json')
+        fetch('/static/stock_price/stock_list.json')
             .then(r => r.json())
             .then(json => {
                 this.stockList = json.results || [];

@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from api.models import StockInfo
+from stock_price.models import StockInfo
 import json
 from pathlib import Path
 
