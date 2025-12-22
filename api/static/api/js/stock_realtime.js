@@ -1,124 +1,15 @@
 const StockApp = {
-    stockList: [], // 자동완성용 종목 리스트
-    version: "1.1", // For cache verification
     socket: null,
     stockCode: null,
 
-
     init: function () {
-        console.log(`StockApp Initialized (Version ${this.version})`);
         this.cacheDOM();
         this.bindEvents();
-        // 종목 리스트 json 불러오기
-        fetch('/static/stock_price/stock_list.json')
-            .then(r => r.json())
-            .then(json => {
-                this.stockList = json.results || [];
-                this.setupAutocomplete();
-                // input의 기본값이 있을 때 자동으로 코드 세팅
-                if (this.$input && this.$selectedShortCode && this.$input.value) {
-                    const match = this.stockList.find(
-                        s => s.name === this.$input.value || s.short_code === this.$input.value
-                    );
-                    if (match) this.$selectedShortCode.value = match.short_code;
-                }
-                this.connectWS(); // 종목코드 세팅 후에만 연결
-            })
-            .catch(err => {
-                console.error('자동완성 종목 리스트 로드 실패', err);
-                this.setupAutocomplete();
-                this.connectWS(); // 실패 시에도 연결 시도
-            });
-    },
-
-    setupAutocomplete: function () {
-        if (!this.$input) return;
-        this.$input.addEventListener('input', (e) => {
-            const q = e.target.value.trim();
-            this.showAutocomplete(q);
-            this._activeIndex = -1;
-            if (this.$selectedShortCode) this.$selectedShortCode.value = '';
-        });
-        // 자동완성 목록 클릭 시 입력창에 반영
-        document.body.addEventListener('mousedown', (e) => {
-            if (e.target.classList.contains('autocomplete-item')) {
-                this.$input.value = e.target.dataset.name;
-                this.hideAutocomplete();
-            } else {
-                this.hideAutocomplete();
-            }
-        });
-        // 키보드 네비게이션
-        this.$input.addEventListener('keydown', (e) => {
-            const list = document.getElementById('autocomplete-list');
-            if (!list || list.style.display === 'none') return;
-            const items = Array.from(list.querySelectorAll('.autocomplete-item'));
-            if (!items.length) return;
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                this._activeIndex = (typeof this._activeIndex === 'number') ? this._activeIndex + 1 : 0;
-                if (this._activeIndex >= items.length) this._activeIndex = 0;
-                this.setActiveAutocomplete(items, this._activeIndex);
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                this._activeIndex = (typeof this._activeIndex === 'number') ? this._activeIndex - 1 : items.length - 1;
-                if (this._activeIndex < 0) this._activeIndex = items.length - 1;
-                this.setActiveAutocomplete(items, this._activeIndex);
-            } else if (e.key === 'Enter') {
-                if (typeof this._activeIndex === 'number' && this._activeIndex >= 0) {
-                    e.preventDefault();
-                    const it = items[this._activeIndex];
-                    if (it) {
-                        this.$input.value = it.dataset.name;
-                        if (this.$selectedShortCode) this.$selectedShortCode.value = it.dataset.shortCode;
-                        this.hideAutocomplete();
-                        this.connectWS();
-                    }
-                }
-            }
-        });
-    },
-    setActiveAutocomplete: function (items, idx) {
-        items.forEach((el, i) => el.classList.toggle('active', i === idx));
-        const active = items[idx];
-        if (active) active.scrollIntoView({ block: 'nearest' });
-    },
-
-    showAutocomplete: function (q) {
-        this.hideAutocomplete();
-        if (!q || !this.stockList.length) return;
-        const qUpper = q.toUpperCase();
-        const matched = this.stockList.filter(
-            s => (s.name && s.name.toUpperCase().includes(qUpper)) || (s.short_code && s.short_code.toUpperCase().includes(qUpper))
-        );
-        if (!matched.length) return;
-        let list = document.getElementById('autocomplete-list');
-        if (!list) {
-            list = document.createElement('div');
-            list.id = 'autocomplete-list';
-            list.className = 'autocomplete-list';
-            this.$input.parentNode.appendChild(list);
-        }
-        list.innerHTML = '';
-        matched.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'autocomplete-item';
-            div.dataset.name = item.name;
-            div.dataset.shortCode = item.short_code;
-            div.textContent = `${item.name} (${item.short_code})`;
-            list.appendChild(div);
-        });
-        list.style.display = 'block';
-    },
-
-    hideAutocomplete: function () {
-        const list = document.getElementById('autocomplete-list');
-        if (list) list.style.display = 'none';
+        this.connectWS();
     },
 
     cacheDOM: function () {
         this.$input = document.getElementById('stock-code-input');
-        this.$selectedShortCode = document.getElementById('selected-short-code');
         this.$connectBtn = document.getElementById('connect-btn');
         this.$disconnectBtn = document.getElementById('disconnect-btn');
         this.$status = document.getElementById('status');
@@ -150,8 +41,7 @@ const StockApp = {
     },
 
     connectWS: function () {
-        // prefer selected short code (from autocomplete). If absent, use raw input.
-        const code = (this.$selectedShortCode && this.$selectedShortCode.value) ? this.$selectedShortCode.value : this.$input.value.trim();
+        const code = this.$input.value.trim();
         if (!code) {
             alert('종목코드를 입력해주세요.');
             return;
@@ -217,9 +107,8 @@ const StockApp = {
         try {
             const data = JSON.parse(event.data);
 
-            // 1. 호가 데이터 (10호가가 모두 있어야 진짜 호가 데이터임)
-            // 체결 데이터에도 ASKP1, BIDP1은 포함되어 있어서 오동작함 -> ASKP10, BIDP10 체크로 구분
-            if (data.ASKP10 !== undefined && data.BIDP10 !== undefined) {
+            // 1. 호가 데이터
+            if (data.ASKP1 !== undefined && data.BIDP1 !== undefined) {
                 this.renderHoga(data);
             }
 
@@ -300,16 +189,9 @@ const StockApp = {
 
     triggerFlash: function (el, type) {
         const flashClass = type === 'up' ? 'changed-up' : 'changed-down';
-
-        // 이미 애니메이션 진행 중이면 무시 (Layout Thrashing 방지 및 자연스러운 연출)
-        if (el.classList.contains('changed-up') || el.classList.contains('changed-down')) {
-            return;
-        }
-
+        el.classList.remove('changed-up', 'changed-down');
+        void el.offsetWidth; // trigger reflow
         el.classList.add(flashClass);
-        el.addEventListener('animationend', () => {
-            el.classList.remove(flashClass);
-        }, { once: true });
     },
 
     formatNumber: function (num) {
@@ -326,6 +208,16 @@ const StockApp = {
         // 매수 호가 업데이트
         for (let i = 1; i <= 10; i++) {
             this.updateHogaRow(this.$bidTable, i, data[`BIDP${i}`], data[`BIDP_RSQN${i}`], 'bid');
+        }
+
+        // 현재가/예상체결가 정보 업데이트
+        const currentPrice = data.ANTC_CNPR || data.BIDP1 || data.ASKP1;
+        const diff = data.ANTC_CNTG_VRSS || 0;
+        const sign = data.ANTC_CNTG_VRSS_SIGN || '3';
+        const rate = (diff / (currentPrice - diff) * 100).toFixed(2); // 대략적인 등락률 계산 (데이터에 없을 경우)
+
+        if (currentPrice) {
+            this.updateCurrentPrice(currentPrice, diff, rate, sign);
         }
     },
 

@@ -118,6 +118,7 @@ class StockMaster:
                     SerializerClass = StockResponseSerializer
 
                 if SerializerClass and stock_code:
+                    stock_code = stock_code.split("^")[0]
                     parsed_dict = SerializerClass.parse_from_raw(data)
                     if parsed_dict:
                         serializer = SerializerClass(data=parsed_dict)
@@ -125,7 +126,7 @@ class StockMaster:
                             # [DEBUG] Response Body 출력
                             print(f"[StockMaster] Response Body ({tr_id}):\n{json.dumps(serializer.data, indent=2, ensure_ascii=False)}")
                             group_name = f"stock_{stock_code}"
-                            
+                            print("group_name : ", group_name)
                             await self.channel_layer.group_send(
                                 group_name,
                                 {
