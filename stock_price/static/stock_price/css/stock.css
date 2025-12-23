@@ -28,11 +28,11 @@ body {
     flex-direction: row;
 }
 
-.control-panel > * {
+.control-panel>* {
     flex: 0 0 auto;
 }
 
-.control-panel > div {
+.control-panel>div {
     flex: 1 1 auto;
     min-width: 0;
 }
@@ -95,14 +95,14 @@ td {
 .ask-row .price {
     color: #3182f6;
     /* 파랑 */
-    text-align: right;
+    text-align: center;
     font-weight: 700;
 }
 
 .bid-row .price {
     color: #f04452;
     /* 빨강 */
-    text-align: right;
+    text-align: center;
     font-weight: 700;
 }
 
@@ -184,14 +184,12 @@ td {
 }
 
 #ask-table-body .price {
-    text-align: right;
-    padding-right: 20px;
+    text-align: center;
 }
 
 /* 매수 영역: 가격 | 잔량 */
 #bid-table-body .price {
-    text-align: right;
-    padding-right: 20px;
+    text-align: center;
 }
 
 #bid-table-body .volume {

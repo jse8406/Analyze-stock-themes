@@ -39,11 +39,16 @@ const StockApp = {
             this._activeIndex = -1;
             if (this.$selectedShortCode) this.$selectedShortCode.value = '';
         });
-        // 자동완성 목록 클릭 시 입력창에 반영
+        // 자동완성 목록 클릭 시 입력창에 반영 및 연결
         document.body.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('autocomplete-item')) {
                 this.$input.value = e.target.dataset.name;
+                if (this.$selectedShortCode) {
+                    this.$selectedShortCode.value = e.target.dataset.shortCode;
+                }
                 this.hideAutocomplete();
+                // 클릭 시 즉시 연결 시도
+                this.connectWS();
             } else {
                 this.hideAutocomplete();
             }

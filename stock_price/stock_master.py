@@ -16,8 +16,9 @@ APP_SECRET = os.getenv('g_appsecret') or os.getenv('g_appsceret')
 
 WS_BASE_URL = "ws://ops.koreainvestment.com:21000"
 WS_PATH = "" 
-TR_ID_HOGA = "H0UNASP0"
-TR_ID_EXEC = "H0STCNT0"
+TR_ID_HOGA = "H0UNASP0"    # 주식 호가
+TR_ID_HOGA_ELW = "H0STASP0" # ELW 호가
+TR_ID_EXEC = "H0STCNT0"    # 주식/ELW 체결
 
 class StockMaster:
     _instance = None
@@ -37,6 +38,7 @@ class StockMaster:
         self.connected = False
         self.lock = asyncio.Lock()
         self.active_stocks = set() # 현재 구독 중인 종목 코드들
+        self.logged_stocks = set() # 최초 1회 로그 출력 여부 확인용
         self.channel_layer = get_channel_layer()
         self.running = False
         self.task = None
@@ -89,15 +91,33 @@ class StockMaster:
             finally:
                 self.connected = False
                 self.ws = None
+    
+    def is_elw(self, stock_code):
+        """종목 코드가 ELW인지 판별 (보통 영문+숫자 혼합이거나 끝이 'W')"""
+        # 1. 6자리 숫자인 일반 주식은 제외
+        if stock_code.isdigit() and len(stock_code) == 6:
+            return False
+            
+        # 2. 한글이 포함된 경우 (이름이 넘어온 경우) 주식으로 간주하여 시도 (보통 실패하지만 ELW는 아님)
+        if any(ord('가') <= ord(c) <= ord('힣') for c in stock_code):
+            return False
+
+        # 3. 영문이 포함되어 있거나 끝이 'W'인 경우 ELW로 판별
+        return any(c.isalpha() for c in stock_code) or stock_code.endswith('W')
+
+    def get_hoga_tr_id(self, stock_code):
+        return TR_ID_HOGA_ELW if self.is_elw(stock_code) else TR_ID_HOGA
 
     async def handle_message(self, data):
         """수신된 데이터를 분석하여 Redis 채널로 브로드캐스팅"""
         # PINGPONG 등 비데이터 처리 (필요시)
         if isinstance(data, str) and data.startswith("{"):
-             # JSON 메시지 (에러 등)
+             # JSON 메시지 (에러, 구독 확인 등)
              try:
                  js = json.loads(data)
-                 # print(f"[StockMaster] System Msg: {js}")
+                 if js.get("header", {}).get("tr_id") == "PINGPONG":
+                     return 
+                 print(f"[StockMaster] System Msg: {json.dumps(js, indent=2, ensure_ascii=False)}")
              except:
                  pass
              return
@@ -107,12 +127,11 @@ class StockMaster:
             if len(parts) > 3:
 
                 tr_id = parts[1]
-
                 tr_key = parts[3] 
                 stock_code = tr_key
                 
                 SerializerClass = None
-                if tr_id == TR_ID_HOGA:
+                if tr_id in [TR_ID_HOGA, TR_ID_HOGA_ELW]:
                     SerializerClass = StockAskingPriceResponseSerializer
                 elif tr_id == TR_ID_EXEC: # H0STCNT0 or H0UNCNT0
                     SerializerClass = StockResponseSerializer
@@ -123,10 +142,12 @@ class StockMaster:
                     if parsed_dict:
                         serializer = SerializerClass(data=parsed_dict)
                         if serializer.is_valid():
-                            # [DEBUG] Response Body 출력
-                            print(f"[StockMaster] Response Body ({tr_id}):\n{json.dumps(serializer.data, indent=2, ensure_ascii=False)}")
+                            # [DEBUG] 각 종목당 최초 1회만 Response Body 출력
+                            if stock_code not in self.logged_stocks:
+                                print(f"[StockMaster] First Response Body ({tr_id}) for {stock_code}:\n{json.dumps(serializer.data, indent=2, ensure_ascii=False)}")
+                                self.logged_stocks.add(stock_code)
+                                
                             group_name = f"stock_{stock_code}"
-                            print("group_name : ", group_name)
                             await self.channel_layer.group_send(
                                 group_name,
                                 {
@@ -172,11 +193,12 @@ class StockMaster:
         if not self.ws or not self.approval_key:
             return
 
-        # 호가
+        # 호가 (종목 타입에 따라 TR ID 선택)
+        hoga_tr_id = self.get_hoga_tr_id(stock_code)
         payload_hoga = StockRequestSerializer.build_payload(
-            self.approval_key, TR_ID_HOGA, stock_code
+            self.approval_key, hoga_tr_id, stock_code
         )
-        print(f"[StockMaster] Request Body (Hoga):\n{json.dumps(payload_hoga, indent=2, ensure_ascii=False)}")
+        print(f"[StockMaster] Request Body (Hoga - {hoga_tr_id}):\n{json.dumps(payload_hoga, indent=2, ensure_ascii=False)}")
         await self.ws.send(json.dumps(payload_hoga))
 
         # 체결
