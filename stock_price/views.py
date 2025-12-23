@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import asyncio
 import websockets
 import json
+from auth.kis_auth import get_current_price
 
 # .env 파일에서 환경변수 로드
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
@@ -44,6 +45,40 @@ from django.views.generic import TemplateView
 
 class StockRealtimeView(TemplateView):
     template_name = "stock_realtime.html"
+
+class StockDetailView(TemplateView):
+    template_name = "stock_detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        stock_code = self.kwargs.get('stock_code', '005930') # Default Samsung Electronics
+        
+        # Fetch data
+        data = get_current_price(stock_code)
+        
+        # Load stock list to find the name
+        stock_name = None
+        try:
+            json_path = os.path.join(os.path.dirname(__file__), 'static', 'stock_price', 'stock_list.json')
+            with open(json_path, 'r', encoding='utf-8') as f:
+                stock_list_data = json.load(f)
+                results = stock_list_data.get('results', [])
+                for item in results:
+                    if item.get('short_code') == stock_code:
+                        stock_name = item.get('name')
+                        break
+        except Exception as e:
+            print(f"Error loading stock list: {e}")
+
+        # If name not found in json, fallback to code or handle gracefully
+        if not stock_name:
+             stock_name = stock_code
+
+        context['stock_code'] = stock_code
+        context['stock_name'] = stock_name
+        context['stock_data'] = data
+        return context
+
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.models import User
