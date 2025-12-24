@@ -16,7 +16,7 @@ ECHO Starting Redis Server...
 START /B redis-server.exe
 
 ECHO Starting Uvicorn Server...
-uvicorn config.asgi:application --reload --host 0.0.0.0 --port 8000
+uvicorn config.asgi:application --reload --reload-include "*.html" --reload-include "*.css" --reload-include "*.js" --host 0.0.0.0 --port 8000
 
 REM Note: Closing this window will stop Uvicorn, but Redis might keep running in background.
 REM You might need to manually kill redis-server.exe if needed.

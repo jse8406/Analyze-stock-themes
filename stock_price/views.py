@@ -59,7 +59,13 @@ class StockDetailView(TemplateView):
         # Load stock list to find the name
         stock_name = None
         try:
-            json_path = os.path.join(os.path.dirname(__file__), 'static', 'stock_price', 'stock_list.json')
+            # Assuming the file is at stock_price/static/stock_price/stock_list.json
+            # When running with uvicorn directly, __file__ is stock_price/views.py
+            base_dir = os.path.dirname(__file__)
+            json_path = os.path.join(base_dir, 'static', 'stock_price', 'stock_list.json')
+            
+            # Debug print
+            print(f"Loading stock list from: {json_path}")
             with open(json_path, 'r', encoding='utf-8') as f:
                 stock_list_data = json.load(f)
                 results = stock_list_data.get('results', [])

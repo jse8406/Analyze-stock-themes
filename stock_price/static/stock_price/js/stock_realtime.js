@@ -1,6 +1,6 @@
 const StockApp = {
     stockList: [], // 자동완성용 종목 리스트
-    version: "1.1", // For cache verification
+    version: "1.2", // For cache verification
     socket: null,
     stockCode: null,
 
@@ -8,6 +8,7 @@ const StockApp = {
     init: function () {
         console.log(`StockApp Initialized (Version ${this.version})`);
         this.cacheDOM();
+        // ... (existing code) ...
         this.bindEvents();
 
         // Initialize Autocomplete
@@ -17,25 +18,21 @@ const StockApp = {
             onSelect: (item) => {
                 // When item selected, connect immediately
                 this.connectWS();
+            },
+            onReady: () => {
+                // 1. Check URL params after list is loaded
+                const urlParams = new URLSearchParams(window.location.search);
+                const codeParam = urlParams.get('code');
+                const nameParam = urlParams.get('name');
+
+                if (codeParam && nameParam) {
+                    this.$input.value = nameParam;
+                    if (this.$selectedShortCode) this.$selectedShortCode.value = codeParam;
+                    // Connect immediately if params are present
+                    this.connectWS();
+                }
             }
         });
-
-        // Pre-fill if input has value (reload case)
-        // Note: StockAutocomplete fetches list asynchronously, so we might need to wait or just let it happen.
-        // The original code tried to set selectedShortCode if input had value.
-        // We can leave that to the user re-selecting or just let the manual connect work.
-        // But for "Automatic code setting" if string matches:
-        // We can add a method to StockAutocomplete to "resolve" current input?
-        // Or just keep simple logic here once list is loaded?
-        // Actually, StockAutocomplete manages the list internally now.
-        // If we want to support "reload page -> input has 'Samsung' -> auto set code",
-        // we might rely on the user pressing connect or selecting again.
-        // Or we can ask StockAutocomplete to check?
-        // For now, let's trust the user or the hidden input if it was preserved (it usually isn't across refresh unless autocomplete=on?).
-
-        // If the browser restored the visible input value, we might want to ensure short-code is set.
-        // The original code did this after fetching list. 
-        // We can leave it for now or rely on manual interaction.
     },
 
     // Old autocomplete methods removed
@@ -47,6 +44,7 @@ const StockApp = {
         this.$selectedShortCode = document.getElementById('selected-short-code');
         this.$connectBtn = document.getElementById('connect-btn');
         this.$disconnectBtn = document.getElementById('disconnect-btn');
+        this.$detailBtn = document.getElementById('detail-btn');
         this.$status = document.getElementById('status');
         this.$askTable = document.getElementById('ask-table-body');
         this.$bidTable = document.getElementById('bid-table-body');
@@ -57,6 +55,9 @@ const StockApp = {
     bindEvents: function () {
         this.$connectBtn.addEventListener('click', () => this.connectWS());
         this.$disconnectBtn.addEventListener('click', () => this.disconnectWS());
+        if (this.$detailBtn) {
+            this.$detailBtn.addEventListener('click', () => this.goToDetail());
+        }
 
         // 엔터키 입력 시 연결
         this.$input.addEventListener('keypress', (e) => {
@@ -64,6 +65,34 @@ const StockApp = {
                 this.connectWS();
             }
         });
+    },
+
+    goToDetail: function () {
+        // 1. If currently connected, use that code
+        let code = this.stockCode;
+
+        // 2. If not connected, or input changed, try to resolve from input
+        if (!code) {
+            const inputVal = this.$input.value.trim();
+            if (this.$selectedShortCode && this.$selectedShortCode.value) {
+                code = this.$selectedShortCode.value;
+            } else if (inputVal) {
+                // Try to find by name
+                const match = this.autocomplete.findStock(inputVal);
+                if (match) {
+                    code = match.short_code;
+                } else if (/^\d{6}$/.test(inputVal)) {
+                    // Assume input is code
+                    code = inputVal;
+                }
+            }
+        }
+
+        if (code) {
+            window.location.href = `/stock_price/stock/detail/${code}/`;
+        } else {
+            alert('먼저 종목을 조회하거나 올바른 종목명을 입력해주세요.');
+        }
     },
 
     disconnectWS: function () {
@@ -77,10 +106,50 @@ const StockApp = {
 
     connectWS: function () {
         // prefer selected short code (from autocomplete). If absent, use raw input.
-        const code = (this.$selectedShortCode && this.$selectedShortCode.value) ? this.$selectedShortCode.value : this.$input.value.trim();
+        let code = (this.$selectedShortCode && this.$selectedShortCode.value) ? this.$selectedShortCode.value : this.$input.value.trim();
+
+        // If code is not a valid 6-digit code, try to resolve it as a name
+        let stockName = '';
+
+        // Try to find the stock object to get the clean name
+        const match = this.autocomplete.findStock(code);
+        if (match) {
+            code = match.short_code;
+            stockName = match.name;
+            // Update inputs to match selection
+            this.$input.value = stockName;
+            if (this.$selectedShortCode) this.$selectedShortCode.value = code;
+        } else if (/^\d{6}$/.test(code)) {
+            // If it was a raw code, try to look up the name for the URL
+            // (match is null, but maybe we can find it now that we know it's a code)
+            const paramMatch = this.autocomplete.findStock(code);
+            if (paramMatch) {
+                stockName = paramMatch.name;
+                // Only update input value if it's currently showing the code or empty, to avoid overwriting user edits?
+                // Actually, if we resolved a name, we should show it.
+                this.$input.value = stockName;
+            } else {
+                stockName = code; // Fallback
+            }
+        } else {
+            // Valid name logic handled above, this else is for "not code AND not found"
+            console.warn("Could not resolve stock name:", code);
+        }
+
         if (!code) {
             alert('종목코드를 입력해주세요.');
             return;
+        }
+
+        // Update URL to reflect current stock
+        try {
+            if (history.pushState) {
+                const newUrl = `${window.location.pathname}?code=${code}&name=${encodeURIComponent(stockName)}`;
+                console.log(`Updating URL to: ${newUrl}`);
+                window.history.pushState({ path: newUrl }, '', newUrl);
+            }
+        } catch (e) {
+            console.error("Failed to update URL", e);
         }
 
         console.log(`Attempting to connect to stock: ${code}`);

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 상세 정보</title>
+    <title>종목 현재가</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'stock_price/css/stock.css' %}">
     <style>
@@ -108,6 +108,11 @@
                 {% endif %}
             </div>
             <div class="search-box" style="position: relative;">
+                {% if stock_data %}
+                <a href="/stock_price/stock/?code={{ stock_code }}&name={{ stock_name }}"
+                    style="text-decoration:none; padding: 8px 15px; background-color: #6c757d; color: white; border-radius: 4px; border: none; font-size: 13.3333px; margin-right: 5px; display: flex; align-items: center;">실시간
+                    호가</a>
+                {% endif %}
                 <input type="text" id="stock-code-input" placeholder="종목코드/명 (예: 삼성전자)" value="{{ stock_name }}"
                     autocomplete="off">
                 <button onclick="searchStock()">조회</button>
@@ -215,8 +220,10 @@
 
     <script src="{% static 'stock_price/js/stock_utils.js' %}"></script>
     <script>
+        let autocompleteInstance = null;
+
         document.addEventListener('DOMContentLoaded', () => {
-            new StockAutocomplete({
+            autocompleteInstance = new StockAutocomplete({
                 inputId: 'stock-code-input',
                 onSelect: (item) => {
                     // Redirect to detail page
@@ -226,17 +233,8 @@
 
             const input = document.getElementById('stock-code-input');
             // Basic Enter support for manual typing (searchStock logic)
-            // StockAutocomplete handles Enter on list items.
-            // But if user types full code and hits Enter without selecting from list,
-            // we still want searchStock() behavior.
             input.addEventListener("keypress", function (event) {
                 if (event.key === "Enter") {
-                    // Check if autocomplete list is visible/active? 
-                    // StockAutocomplete handles Enter for list selection.
-                    // If list is hidden or no selection, we fall through here?
-                    // But StockAutocomplete swallows Enter if an item is selected.
-                    // If not, it lets it bubble? Ideally yes. 
-                    // Let's assume searchStock handles the "raw input" case.
                     searchStock();
                 }
             });
@@ -245,23 +243,29 @@
         function searchStock() {
             const input = document.getElementById('stock-code-input');
             const val = input.value.trim();
-            // 입력값이 정확히 코드 형식이면 바로 이동
+
+            if (!val) {
+                alert('종목을 입력해주세요.');
+                return;
+            }
+
+            // 1. If it's a 6-digit code, go directly
             if (/^\d{6}$/.test(val)) {
                 window.location.href = `/stock_price/stock/detail/${val}/`;
-            } else {
-                // Autocomplete might have helpfully filled it, or user just typed name.
-                // We can try to look it up from the global list, but StockAutocomplete has the list now...
-                // The original code had `stockList` globally.
-                // Now `stockList` is inside StockAutocomplete instance.
-                // We might rely on the backend or just alert.
-                // Or, we can just say "Please select from the list".
-                // Original code: searched `stockList`.
-
-                // Let's keep it simple: if not 6 digits, warn user.
-                // Or we can try to fetch list separately? No, that's wasteful.
-                // Let's just encourage using the autocomplete.
-                alert('종목을 선택하거나 정확한 6자리 코드를 입력해주세요.');
+                return;
             }
+
+            // 2. Try to resolve name using Autocomplete instance
+            if (autocompleteInstance) {
+                const match = autocompleteInstance.findStock(val);
+                if (match) {
+                    window.location.href = `/stock_price/stock/detail/${match.short_code}/`;
+                    return;
+                }
+            }
+
+            // 3. Fallback
+            alert('종목을 선택하거나 올바른 종목명/코드를 입력해주세요.');
         }
     </script>
 </body>

@@ -47,6 +47,9 @@ class StockAutocomplete {
         // onSelect({ name, short_code })
         this.onSelect = options.onSelect || function () { };
 
+        // Callback when list is loaded
+        this.onReady = options.onReady || function () { };
+
         this._activeIndex = -1;
 
         this.init();
@@ -67,6 +70,8 @@ class StockAutocomplete {
             .then(r => r.json())
             .then(json => {
                 this.stockList = json.results || [];
+                // Notify ready
+                this.onReady();
             })
             .catch(err => console.error('Failed to load stock list in Autocomplete', err));
     }
@@ -181,5 +186,19 @@ class StockAutocomplete {
         this.hideAutocomplete();
 
         this.onSelect({ name, short_code: code });
+    }
+
+    /**
+     * Find stock info by exact name match or code match
+     * @param {string} query 
+     * @returns {object|null} {name, short_code} or null
+     */
+    findStock(query) {
+        if (!query) return null;
+        const qUpper = query.trim().toUpperCase();
+        return this.stockList.find(s =>
+            (s.name && s.name.toUpperCase() === qUpper) ||
+            (s.short_code && s.short_code === qUpper)
+        ) || null;
     }
 }

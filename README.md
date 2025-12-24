@@ -86,3 +86,4 @@ python manage.py test api
 
 
 왜 SK하이닉스는 위아래 10호가 데이터를 받아오질 못하지????
+
