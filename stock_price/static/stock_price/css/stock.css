@@ -22,19 +22,28 @@ body {
 
 .control-panel {
     display: flex;
+    flex-direction: column;
     gap: 8px;
     margin-bottom: 10px;
-    align-items: center;
-    flex-direction: row;
 }
 
-.control-panel>* {
-    flex: 0 0 auto;
+.search-group {
+    display: flex;
+    gap: 8px;
+    width: 100%;
 }
 
-.control-panel>div {
-    flex: 1 1 auto;
-    min-width: 0;
+.search-group>div {
+    flex: 1;
+}
+
+.nav-group {
+    display: flex;
+    gap: 8px;
+}
+
+.nav-group button {
+    flex: 1;
 }
 
 input[type="text"] {
@@ -196,43 +205,66 @@ td {
     text-align: right;
 }
 
-/* 실시간 체결 목록 스타일 */
-.trade-container {
-    max-width: 480px;
-    margin: 20px auto;
-    background-color: #fff;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    padding: 20px;
+/* 실시간 체결 목록 스타일 (호가창 내부 통합) */
+.trade-area {
+    background-color: #fff8f8 !important;
+    /* 매수 호가 배경색과 동일하게 변경 */
+    padding: 0 !important;
+    vertical-align: top;
+    height: 360px;
+    /* 10 rows * 36px */
 }
 
-.trade-container h3 {
-    margin: 0 0 15px 0;
-    font-size: 18px;
-    color: #191f28;
+.trade-list-wrap {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    /* Gradient mask at bottom for smooth fade out? Optional */
 }
 
-.trade-table th {
-    text-align: center;
-    font-size: 13px;
-    color: #8b95a1;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #f2f4f6;
+.trade-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
 }
 
-.trade-table td {
-    text-align: center;
-    border-bottom: 1px solid #f9fafb;
+.trade-list-table td {
+    padding: 4px 6px;
+    font-size: 11px;
+    /* Smaller font */
+    height: 24px;
+    /* Denser rows */
+    border-bottom: none;
+    text-align: right;
+    color: #333;
 }
 
-.trade-table .up {
+.trade-list-table td:nth-child(1) {
+    /* Price */
+    font-weight: 600;
+    text-align: right;
+    width: 60%;
+    padding-right: 8px;
+    /* Spacing between price and volume */
+    font-size: 11px;
+}
+
+.trade-list-table td:nth-child(2) {
+    /* Volume */
+    color: #333;
+    /* Default black/dark grey for volume */
+    text-align: right;
+    width: 40%;
+    font-size: 11px;
+}
+
+.trade-list-table .up {
     color: #f04452;
-    font-weight: 600;
 }
 
-.trade-table .down {
+.trade-list-table .down {
     color: #3182f6;
-    font-weight: 600;
 }
 
 .autocomplete-list {

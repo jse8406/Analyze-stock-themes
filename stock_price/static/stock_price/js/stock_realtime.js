@@ -193,13 +193,31 @@ const StockApp = {
         // 매수 호가 테이블 초기화 (10행)
         let bidHtml = '';
         for (let i = 1; i <= 10; i++) {
-            bidHtml += `
-                <tr class="bid-row" data-index="${i}">
-                    <td class="rate"></td>
-                    <td class="price">-</td>
-                    <td class="volume">-</td>
-                </tr>
-            `;
+            if (i === 1) {
+                // 첫 번째 행의 첫 번째 칸에 체결 리스트 영역(rowspan=10) 추가
+                bidHtml += `
+                    <tr class="bid-row" data-index="${i}">
+                        <td rowspan="10" class="trade-area">
+                            <div class="trade-list-wrap">
+                                <table class="trade-list-table">
+                                    <tbody id="trade-list">
+                                        <!-- JS insert -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </td>
+                        <td class="price">-</td>
+                        <td class="volume">-</td>
+                    </tr>
+                `;
+            } else {
+                bidHtml += `
+                    <tr class="bid-row" data-index="${i}">
+                        <td class="price">-</td>
+                        <td class="volume">-</td>
+                    </tr>
+                `;
+            }
         }
         this.$bidTable.innerHTML = bidHtml;
     },
@@ -231,22 +249,31 @@ const StockApp = {
         const price = data.STCK_PRPR;
         const diff = data.PRDY_VRSS;
         const rate = data.PRDY_CTRT;
+        const vol = data.CNTG_VOL;
 
-        this.updateCurrentPrice(price, diff, rate);
+        // 1 (Buy/Ask) -> Red/Up, 5 (Sell/Bid) -> Blue/Down
+        // If CCLD_DVSN is available, use it. Otherwise fallback to diff.
+        let colorClass = '';
+        if (data.CCLD_DVSN) {
+            if (data.CCLD_DVSN === '1') colorClass = 'up'; // Buy (Ask) -> Red
+            else if (data.CCLD_DVSN === '5') colorClass = 'down'; // Sell (Bid) -> Blue
+        } else {
+            // Fallback
+            if (diff > 0) colorClass = 'up';
+            else if (diff < 0) colorClass = 'down';
+        }
+
+        this.updateCurrentPrice(price, diff, rate, data.PRDY_VRSS_SIGN);
 
         // 체결 목록 추가 (최근 15개 유지)
         const $tradeList = document.getElementById('trade-list');
         if ($tradeList) {
             const row = document.createElement('tr');
-            let timeStr = data.STCK_CNTG_HOUR || '000000';
-            if (timeStr.length >= 6) {
-                timeStr = `${timeStr.substring(0, 2)}:${timeStr.substring(2, 4)}:${timeStr.substring(4, 6)}`;
-            }
-
+            // Remove time, show Price and Volume
+            // Price gets color
             row.innerHTML = `
-                <td>${timeStr}</td>
-                <td class="${diff > 0 ? 'up' : (diff < 0 ? 'down' : '')}">${StockUtils.formatNumber(price)}</td>
-                <td>${StockUtils.formatNumber(data.CNTG_VOL)}</td>
+                <td class="${colorClass}">${StockUtils.formatNumber(price)}</td>
+                <td>${StockUtils.formatNumber(vol)}</td>
             `;
             $tradeList.prepend(row);
             if ($tradeList.children.length > 15) {

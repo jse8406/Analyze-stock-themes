@@ -27,7 +27,6 @@ class StockRequestSerializer(serializers.Serializer):
             }
         }
 
-
 class StockResponseSerializer(serializers.Serializer):
     """
     실시간 주식 체결가 응답용 Serializer
@@ -315,3 +314,70 @@ class StockAskingPriceResponseSerializer(serializers.Serializer):
             }
         except Exception:
             return None
+
+
+# --- Ranking API Serializers ---
+
+class RankingRequestHeaderSerializer(serializers.Serializer):
+    content_type = serializers.CharField(required=True, help_text="컨텐츠타입")
+    authorization = serializers.CharField(required=True, help_text="접근토큰")
+    appkey = serializers.CharField(required=True, help_text="앱키")
+    appsecret = serializers.CharField(required=True, help_text="앱시크릿키")
+    personalseckey = serializers.CharField(required=False, allow_null=True, help_text="고객식별키")
+    tr_id = serializers.CharField(required=True, help_text="거래ID")
+    tr_cont = serializers.CharField(required=False, allow_null=True, help_text="연속 거래 여부")
+    custtype = serializers.CharField(required=True, help_text="고객 타입")
+    seq_no = serializers.CharField(required=False, allow_null=True, help_text="일련번호")
+    mac_address = serializers.CharField(required=False, allow_null=True, help_text="맥주소")
+    phone_number = serializers.CharField(required=False, allow_null=True, help_text="핸드폰번호")
+    ip_addr = serializers.CharField(required=False, allow_null=True, help_text="접속 단말 공인 IP")
+    gt_uid = serializers.CharField(required=False, allow_null=True, help_text="Global UID")
+
+class RankingRequestQueryParamSerializer(serializers.Serializer):
+    fid_rsfl_rate2 = serializers.CharField(required=True, help_text="등락 비율2")
+    fid_cond_mrkt_div_code = serializers.CharField(required=True, help_text="조건 시장 분류 코드")
+    fid_cond_scr_div_code = serializers.CharField(required=True, help_text="조건 화면 분류 코드")
+    fid_input_iscd = serializers.CharField(required=True, help_text="입력 종목코드")
+    fid_rank_sort_cls_code = serializers.CharField(required=True, help_text="순위 정렬 구분 코드")
+    fid_input_cnt_1 = serializers.CharField(required=True, help_text="입력 수1")
+    fid_prc_cls_code = serializers.CharField(required=True, help_text="가격 구분 코드")
+    fid_input_price_1 = serializers.CharField(required=True, help_text="입력 가격1")
+    fid_input_price_2 = serializers.CharField(required=True, help_text="입력 가격2")
+    fid_vol_cnt = serializers.CharField(required=True, help_text="거래량 수")
+    fid_trgt_cls_code = serializers.CharField(required=True, help_text="대상 구분 코드")
+    fid_trgt_exls_cls_code = serializers.CharField(required=True, help_text="대상 제외 구분 코드")
+    fid_div_cls_code = serializers.CharField(required=True, help_text="분류 구분 코드")
+    fid_rsfl_rate1 = serializers.CharField(required=True, help_text="등락 비율1")
+
+class RankingResponseBodyOutputSerializer(serializers.Serializer):
+    stck_shrn_iscd = serializers.CharField(help_text="주식 단축 종목코드")
+    data_rank = serializers.CharField(help_text="데이터 순위")
+    hts_kor_isnm = serializers.CharField(help_text="HTS 한글 종목명")
+    stck_prpr = serializers.CharField(help_text="주식 현재가")
+    prdy_vrss = serializers.CharField(help_text="전일 대비")
+    prdy_vrss_sign = serializers.CharField(help_text="전일 대비 부호")
+    prdy_ctrt = serializers.CharField(help_text="전일 대비율")
+    acml_vol = serializers.CharField(help_text="누적 거래량")
+    stck_hgpr = serializers.CharField(help_text="주식 최고가")
+    hgpr_hour = serializers.CharField(help_text="최고가 시간")
+    acml_hgpr_date = serializers.CharField(help_text="누적 최고가 일자")
+    stck_lwpr = serializers.CharField(help_text="주식 최저가")
+    lwpr_hour = serializers.CharField(help_text="최저가 시간")
+    acml_lwpr_date = serializers.CharField(help_text="누적 최저가 일자")
+    lwpr_vrss_prpr_rate = serializers.CharField(help_text="최저가 대비 현재가 비율")
+    dsgt_date_clpr_vrss_prpr_rate = serializers.CharField(help_text="지정 일자 종가 대비 현재가 비")
+    cnnt_ascn_dynu = serializers.CharField(help_text="연속 상승 일수")
+    hgpr_vrss_prpr_rate = serializers.CharField(help_text="최고가 대비 현재가 비율")
+    cnnt_down_dynu = serializers.CharField(help_text="연속 하락 일수")
+    oprc_vrss_prpr_sign = serializers.CharField(help_text="시가2 대비 현재가 부호")
+    oprc_vrss_prpr = serializers.CharField(help_text="시가2 대비 현재가")
+    oprc_vrss_prpr_rate = serializers.CharField(help_text="시가2 대비 현재가 비율")
+    prd_rsfl = serializers.CharField(help_text="기간 등락")
+    prd_rsfl_rate = serializers.CharField(help_text="기간 등락 비율")
+
+class RankingResponseBodySerializer(serializers.Serializer):
+    rt_cd = serializers.CharField(help_text="성공 실패 여부")
+    msg_cd = serializers.CharField(help_text="응답코드")
+    msg1 = serializers.CharField(help_text="응답메세지")
+    output = RankingResponseBodyOutputSerializer(many=True, help_text="응답상세")
+

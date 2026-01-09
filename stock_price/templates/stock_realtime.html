@@ -13,15 +13,21 @@
     <div class="container">
         <div class="header">
             <div class="control-panel">
-                <div style="position:relative; width:100%;">
-                    <input type="text" id="stock-code-input" placeholder="종목코드 또는 종목명 입력" value="삼성전자">
-                    <input type="hidden" id="selected-short-code" value="">
-                    <div id="autocomplete-list" class="autocomplete-list" aria-hidden="true" style="display:none;">
+                <div class="search-group">
+                    <div style="position:relative; width:100%;">
+                        <input type="text" id="stock-code-input" placeholder="종목코드 또는 종목명 입력" value="삼성전자">
+                        <input type="hidden" id="selected-short-code" value="">
+                        <div id="autocomplete-list" class="autocomplete-list" aria-hidden="true" style="display:none;">
+                        </div>
                     </div>
+                    <button id="connect-btn">조회</button>
+                    <button id="disconnect-btn" class="disconnect">중단</button>
                 </div>
-                <button id="connect-btn">조회</button>
-                <button id="disconnect-btn" class="disconnect">중단</button>
-                <button id="detail-btn" style="background-color: #6c757d;">상세 정보</button>
+                <div class="nav-group">
+                    <button id="detail-btn" style="background-color: #6c757d;">상세 정보</button>
+                    <button id="ranking-btn" style="background-color: #4e5968;" data-url="{% url 'stock_ranking' %}"
+                        onclick="location.href=this.dataset.url">순위 보기</button>
+                </div>
             </div>
             <div id="status" style="font-size: 13px; color: #8b95a1;">연결 대기중...</div>
         </div>
@@ -59,21 +65,7 @@
         </div>
     </div>
 
-    <div class="trade-container">
-        <h3>실시간 체결</h3>
-        <table class="trade-table">
-            <thead>
-                <tr>
-                    <th>시간</th>
-                    <th>가격</th>
-                    <th>체결량</th>
-                </tr>
-            </thead>
-            <tbody id="trade-list">
-                <!-- JS insert -->
-            </tbody>
-        </table>
-    </div>
+
     <script src="{% static 'stock_price/js/stock_utils.js' %}"></script>
     <script src="{% static 'stock_price/js/stock_realtime.js' %}"></script>
 </body>

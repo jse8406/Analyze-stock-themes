@@ -4,6 +4,7 @@ import asyncio
 import websockets
 import json
 from auth.kis_auth import get_current_price
+from .services import get_fluctuation_rank, get_volume_rank, get_theme_rank
 
 # .env 파일에서 환경변수 로드
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
@@ -83,6 +84,26 @@ class StockDetailView(TemplateView):
         context['stock_code'] = stock_code
         context['stock_name'] = stock_name
         context['stock_data'] = data
+        context['stock_data'] = data
+        return context
+
+class StockRankingView(TemplateView):
+    template_name = "stock_ranking.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # 상위 30개 등락률 순위
+        rank_fluctuation = get_fluctuation_rank()
+        # 상위 30개 거래량 순위
+        rank_volume = get_volume_rank()
+        # 테마별 순위
+        rank_theme = get_theme_rank()
+
+        context['rank_fluctuation'] = rank_fluctuation if rank_fluctuation else []
+        context['rank_volume'] = rank_volume if rank_volume else []
+        context['rank_theme'] = rank_theme if rank_theme else []
+        
         return context
 
 from rest_framework.decorators import api_view

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="km">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 종목 순위</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'stock_price/css/stock.css' %}">
+    <style>
+        .ranking-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .ranking-header {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #f2f4f6;
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ranking-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #191f28;
+            margin: 0;
+        }
+
+        .tab-menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7684;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background-color: #f2f4f6;
+        }
+
+        .tab-btn.active {
+            background-color: #3182f6;
+            color: #fff;
+            border-color: #3182f6;
+        }
+
+        .ranking-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .ranking-table th {
+            text-align: left;
+            padding: 12px;
+            color: #8b95a1;
+            font-weight: 500;
+            border-bottom: 1px solid #f2f4f6;
+        }
+
+        .ranking-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f2f4f6;
+            color: #333;
+        }
+
+        .ranking-table tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .rank-num {
+            font-weight: 700;
+            color: #333;
+            width: 40px;
+            text-align: center;
+        }
+
+        .rank-top {
+            color: #f04452;
+        }
+
+        .stock-name-cell {
+            font-weight: 600;
+            cursor: pointer;
+            color: #333;
+        }
+
+        .stock-name-cell:hover {
+            text-decoration: underline;
+            color: #3182f6;
+        }
+
+        .up {
+            color: #f04452;
+        }
+
+        .down {
+            color: #3182f6;
+        }
+
+        .section-wrapper {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .section-wrapper.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .price-align {
+            text-align: right;
+            /* 숫자 우측 정렬 */
+            padding-right: 20px !important;
+        }
+
+        /* Theme Grid Styles */
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+            padding: 10px 0;
+        }
+
+        .theme-card {
+            background: #fff;
+            border: 1px solid #e5e8eb;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theme-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+            border-color: transparent;
+        }
+
+        .theme-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .theme-name {
+            font-size: 17px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .theme-rate {
+            font-size: 26px;
+            font-weight: 800;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .theme-desc {
+            font-size: 13px;
+            color: #8b95a1;
+        }
+
+        .card-up {
+            background: linear-gradient(135deg, #fff5f6 0%, #ffffff 100%);
+            border-color: #ffc9c9;
+        }
+
+        .card-up .theme-rate {
+            color: #f04452;
+        }
+
+        .card-up .theme-icon {
+            color: #f04452;
+        }
+
+        .card-down {
+            background: linear-gradient(135deg, #f3f9fe 0%, #ffffff 100%);
+            border-color: #c9e2ff;
+        }
+
+        .card-down .theme-rate {
+            color: #3182f6;
+        }
+
+        .card-down .theme-icon {
+            color: #3182f6;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ranking-container">
+        <div class="ranking-header">
+            <h1 class="ranking-title">실시간 시장 트렌드</h1>
+            <a href="{% url 'stock_realtime' %}"
+                style="text-decoration: none; color: #3182f6; font-size: 14px; font-weight: 600;">홈으로 가기 &gt;</a>
+        </div>
+
+        <div class="tab-menu">
+            <button class="tab-btn active" onclick="showTab('fluctuation', event)">🚀 급상승 종목</button>
+            <button class="tab-btn" onclick="showTab('volume', event)">🔥 거래량 상위</button>
+            <button class="tab-btn" onclick="showTab('theme', event)">✨ 오늘의 테마</button>
+        </div>
+
+        <!-- 등락률 상위 -->
+        <div id="fluctuation" class="section-wrapper active">
+            <table class="ranking-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px; text-align: center;">순위</th>
+                        <th>종목명</th>
+                        <th class="price-align">현재가</th>
+                        <th class="price-align">등락률</th>
+                        <th class="price-align">거래량</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in rank_fluctuation %}
+                    <tr>
+                        <td class="rank-num {% if forloop.counter <= 3 %}rank-top{% endif %}">{{ forloop.counter }}</td>
+                        <td class="stock-name-cell"
+                            onclick="location.href='/stock_price/stock/detail/{{ item.stck_shrn_iscd }}/'">
+                            {{ item.hts_kor_isnm }} <span style="font-size:12px; color:#999;">{{
+                                item.stck_shrn_iscd}}</span></td>
+                        <td class="price-align">{{ item.stck_prpr }}</td>
+                        <td class="price-align">
+                            <span
+                                class="{% if item.prdy_vrss_sign == '1' or item.prdy_vrss_sign == '2' %}up{% elif item.prdy_vrss_sign == '4' or item.prdy_vrss_sign == '5' %}down{% endif %}">
+                                {{ item.prdy_ctrt }}%
+                            </span>
+                        </td>
+                        <td class="price-align">{{ item.acml_vol }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px; color: #888;">데이터를 불러올 수 없습니다.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 거래량 상위 -->
+        <div id="volume" class="section-wrapper">
+            <table class="ranking-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px; text-align: center;">순위</th>
+                        <th>종목명</th>
+                        <th class="price-align">현재가</th>
+                        <th class="price-align">등락률</th>
+                        <th class="price-align">거래량</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in rank_volume %}
+                    <tr>
+                        <td class="rank-num {% if forloop.counter <= 3 %}rank-top{% endif %}">{{ forloop.counter }}</td>
+                        <td class="stock-name-cell"
+                            onclick="location.href='/stock_price/stock/detail/{{ item.mksc_shrn_iscd }}/'">
+                            {{ item.hts_kor_isnm }} <span style="font-size:12px; color:#999;">{{ item.mksc_shrn_iscd
+                                }}</span>
+                        </td>
+                        <td class="price-align">{{ item.stck_prpr }}</td>
+                        <td class="price-align">
+                            <span
+                                class="{% if item.prdy_vrss_sign == '1' or item.prdy_vrss_sign == '2' %}up{% elif item.prdy_vrss_sign == '4' or item.prdy_vrss_sign == '5' %}down{% endif %}">
+                                {{ item.prdy_ctrt }}%
+                            </span>
+                        </td>
+                        <td class="price-align">{{ item.acml_vol }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px; color: #888;">데이터를 불러올 수 없습니다.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 테마 순위 (New) -->
+        <div id="theme" class="section-wrapper">
+            <div class="theme-grid">
+                {% for theme in rank_theme %}
+                <div class="theme-card {% if theme.is_rising %}card-up{% else %}card-down{% endif %}">
+                    <span class="theme-icon">
+                        {% if theme.name|first == "반" %}💾
+                        {% elif theme.name|first == "2" %}🔋
+                        {% elif theme.name|first == "자" %}🚗
+                        {% elif theme.name|first == "인" %}📱
+                        {% elif theme.name|first == "바" %}🧬
+                        {% elif theme.name|first == "엔" %}🎵
+                        {% elif theme.name|first == "금" %}💰
+                        {% elif theme.name|first == "방" %}🛡️
+                        {% else %}📈{% endif %}
+                    </span>
+                    <span class="theme-name">{{ theme.name }}</span>
+                    <span class="theme-rate">
+                        {% if theme.is_rising %}+{% endif %}{{ theme.rate }}%
+                    </span>
+                    <span class="theme-desc">평균 등락률</span>
+                </div>
+                {% empty %}
+                <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">
+                    테마 데이터를 불러올 수 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function showTab(tabName, event) {
+            // Hide all sections
+            document.querySelectorAll('.section-wrapper').forEach(el => el.classList.remove('active'));
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            // Show selected section
+            document.getElementById(tabName).classList.add('active');
+            // Add active class to clicked button
+            if (event) {
+                event.target.classList.add('active');
+            }
+        }
+
+        // Format numbers with commas (Optional: if not done by template filter)
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll('.price-align').forEach(el => {
+                const text = el.innerText.trim();
+                // Check if it's a pure number string (ignoring % and space)
+                if (/^-?\d+$/.test(text) || /^-?\d+\.\d+$/.test(text)) {
+                    // el.innerText =  Number(text).toLocaleString();
+                    // Actually django intcomma filter is better but we didn't load humanize
+                    // Let's leave it for now or implement a simple JS formatter if needed
+                    const num = parseFloat(text);
+                    if (!isNaN(num)) {
+                        el.innerText = num.toLocaleString();
+                    }
+                } else if (text.endsWith('%')) {
+                    // It's a rate, maybe colored
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

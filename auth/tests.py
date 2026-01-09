@@ -41,5 +41,3 @@ class KISAuthTokenTest(TestCase):
         self.assertIsNotNone(result, "get_current_price() should not return None")
         self.assertIn("stck_prpr", result, "Response should contain 'stck_prpr' (현재가)")
         print(f"[TEST] 삼성전자 현재가: {result.get('stck_prpr')}원")
-
-

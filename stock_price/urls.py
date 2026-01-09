@@ -11,4 +11,5 @@ urlpatterns = [
     path('stock/', views.StockRealtimeView.as_view(), name='stock_realtime'),
     path('stock/detail/', views.StockDetailView.as_view(), name='stock_detail_default'),
     path('stock/detail/<str:stock_code>/', views.StockDetailView.as_view(), name='stock_detail'),
+    path('stock/ranking/', views.StockRankingView.as_view(), name='stock_ranking'),
 ]

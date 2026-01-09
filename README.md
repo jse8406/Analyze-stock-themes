@@ -50,40 +50,48 @@ python manage.py runserver
 
 서버가 시작되면 http://localhost:8000 에서 접속할 수 있습니다.
 
-## API 엔드포인트
+## 주요 페이지 및 API 엔드포인트
 
-### 테스트 엔드포인트
-- `GET /api/hello/` - Hello World 응답
+### 웹 페이지 (Frontend)
+- `GET /stock_price/stock/`: **실시간 호가 페이지**
+  - 실시간 주식 시세를 WebSocket을 통해 조회할 수 있는 페이지입니다.
+  - 예: `/stock_price/stock/?code=005930&name=삼성전자`
+- `GET /stock_price/stock/detail/<stock_code>/`: **종목 상세 정보 페이지**
+  - 특정 종목의 현재가 등 상세 정보를 조회합니다.
+  - 예: `/stock_price/stock/detail/005930/`
 
-### DRF 브라우저블 API
-- `GET /api/` - API 루트 (DRF 라우터)
+### API 엔드포인트
+- `GET /stock_price/hello/`: 테스트용 Hello World API
 
-### 관리자 페이지
-- `GET /admin/` - Django 관리자 페이지
+### 웹소켓 (WebSocket)
+- `ws://<host>/ws/stock/<stock_code>/`: 실시간 주식 시세 스트림
+  - `stock_code`: 6자리 종목 코드 (예: 005930)
+
+## 프로젝트 구조
+
+### 주요 앱 (Apps)
+- `auth`: KIS API 토큰 발급 및 인증 관리 (`kis_auth.py`)
+- `stock_price`: 주식 시세 조회, 랭킹 서비스, 웹 페이지 제공 (`services.py`, `views.py`)
 
 ## 설정된 기능
 
-- Django REST Framework
-- CORS 헤더 설정 (localhost:3000, localhost:8080 허용)
-- 기본 인증 (SessionAuthentication)
-- 페이지네이션 (10개 단위)
-- 한국어/한국 시간대 설정
+- **실시간 주세 조회**: KIS WebSocket API 연동
+- **랭킹 서비스**: 등락률 상위, 거래량 상위 종목 조회 (`services.py`)
+- **자동완성**: 종목 검색 시 자동완성 기능 적용 (`stock_utils.js`)
+- **Redis 연동**: Django Channels와 Redis를 활용한 실시간 데이터 브로드캐스팅
 
 ## 테스트 실행
 
 ```bash
-python manage.py test api
+# 전체 테스트
+python manage.py test
+
+# 특정 앱 테스트
+python manage.py test stock_price
+python manage.py test auth
 ```
 
-## 다음 단계
+## 참고 사항
+- SK하이닉스 등 일부 종목의 호가 데이터 수신 문제 연구 중.
 
-1. `api/models.py`에 데이터 모델 추가
-2. `api/serializers.py`에 시리얼라이저 작성
-3. `api/views.py`에 ViewSet 또는 APIView 구현
-4. `api/urls.py`에 라우터 등록
-5. 마이그레이션 생성 및 적용
-
-
-
-왜 SK하이닉스는 위아래 10호가 데이터를 받아오질 못하지????
 
