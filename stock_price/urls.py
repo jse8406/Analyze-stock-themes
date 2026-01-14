@@ -7,7 +7,6 @@ router = DefaultRouter()
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('hello/', views.hello_world, name='hello_world'),
     path('stock/', views.StockRealtimeView.as_view(), name='stock_realtime'),
     path('stock/detail/', views.StockDetailView.as_view(), name='stock_detail_default'),
     path('stock/detail/<str:stock_code>/', views.StockDetailView.as_view(), name='stock_detail'),

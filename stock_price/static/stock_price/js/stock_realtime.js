@@ -35,10 +35,6 @@ const StockApp = {
         });
     },
 
-    // Old autocomplete methods removed
-    // setupAutocomplete, showAutocomplete, hideAutocomplete, doc click, keydown... removed.
-
-
     cacheDOM: function () {
         this.$input = document.getElementById('stock-code-input');
         this.$selectedShortCode = document.getElementById('selected-short-code');

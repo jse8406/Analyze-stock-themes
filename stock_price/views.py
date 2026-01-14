@@ -1,48 +1,10 @@
 import os
-from dotenv import load_dotenv
 import asyncio
-import websockets
 import json
 from auth.kis_auth import get_current_price
 from .services import kis_rest_client
-
-# .env 파일에서 환경변수 로드
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
-
-APP_KEY = os.getenv('g_appkey')
-APP_SECRET = os.getenv('g_appsceret')
-TR_ID = "H0STCNT0"  # 주식체결가 TR
-STOCK_CODE = "005930"  # 예시: 삼성전자
-
-async def get_realtime_stock_price():
-    url = "wss://openapi.koreainvestment.com:9443/websocket"
-    async with websockets.connect(url) as ws:
-        senddata = {
-            "header": {
-                "appkey": APP_KEY,
-                "appsecret": APP_SECRET,
-                "custtype": "P",
-                "tr_type": "1",
-                "content-type": "utf-8"
-            },
-            "body": {
-                "input": {
-                    "tr_id": TR_ID,
-                    "tr_key": STOCK_CODE
-                }
-            }
-        }
-        await ws.send(json.dumps(senddata))
-        while True:
-            data = await ws.recv()
-            print(data)  # 실시간 체결가 데이터 출력
-
-# 테스트용: python manage.py shell에서 아래 실행
-# import asyncio; from api.views import get_realtime_stock_price; asyncio.run(get_realtime_stock_price())
-from rest_framework import viewsets, status
-
-# 실시간 주가 웹페이지 렌더링용 View
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, View
+from django.template.response import TemplateResponse
 
 class StockRealtimeView(TemplateView):
     template_name = "stock_realtime.html"
@@ -87,36 +49,19 @@ class StockDetailView(TemplateView):
         context['stock_data'] = data
         return context
 
-class StockRankingView(TemplateView):
+class StockRankingView(View):
     template_name = "stock_ranking.html"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # 상위 30개 등락률 순위
-        rank_fluctuation = kis_rest_client.get_fluctuation_rank()
-        # 상위 30개 거래량 순위
-        rank_volume = kis_rest_client.get_volume_rank()
-        # 테마별 순위
-        rank_theme = kis_rest_client.get_theme_rank()
+    async def get(self, request, *args, **kwargs):
+        # 비동기로 API 호출
+        rank_fluctuation = await kis_rest_client.get_fluctuation_rank()
+        rank_volume = await kis_rest_client.get_volume_rank()
+        rank_theme = await kis_rest_client.get_theme_rank()
 
-        context['rank_fluctuation'] = rank_fluctuation if rank_fluctuation else []
-        context['rank_volume'] = rank_volume if rank_volume else []
-        context['rank_theme'] = rank_theme if rank_theme else []
-        
-        return context
+        context = {
+            "rank_fluctuation": rank_fluctuation if rank_fluctuation else [],
+            "rank_volume": rank_volume if rank_volume else [],
+            "rank_theme": rank_theme if rank_theme else [],
+        }
 
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from django.contrib.auth.models import User
-
-@api_view(['GET'])
-def hello_world(request):
-    """
-    간단한 테스트용 API 엔드포인트
-    """
-    return Response({
-        'message': 'Hello, World!',
-        'status': 'success'
-    })
-
+        return TemplateResponse(request, self.template_name, context)

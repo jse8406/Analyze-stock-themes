@@ -1,4 +1,4 @@
-import requests
+import httpx
 import os
 from auth.kis_auth import get_access_token
 from dotenv import load_dotenv
@@ -23,7 +23,7 @@ class KISRestClient:
         if not token_data or 'access_token' not in token_data:
             print("[Stock Service] Token is missing")
             return None
-        
+
         return {
             "Content-Type": "application/json; charset=utf-8",
             "authorization": f"Bearer {token_data['access_token']}",
@@ -34,13 +34,13 @@ class KISRestClient:
             "custtype": "P",
         }
 
-    def get_fluctuation_rank(self, limit=30):
+    async def get_fluctuation_rank(self):
         """등락률 순위 조회 (상위 30개)"""
         headers = self._get_headers("FHPST01700000")
         if not headers: return None
 
         url = f"{self.domain}/uapi/domestic-stock/v1/ranking/fluctuation"
-        
+
         params = {
             "fid_rsfl_rate2": "",
             "fid_cond_mrkt_div_code": "J",
@@ -58,26 +58,27 @@ class KISRestClient:
             "fid_rsfl_rate1": "",
         }
 
-        try:
-            r = requests.get(url, headers=headers, params=params, timeout=10)
-            data = r.json()
-            
-            if data.get('rt_cd') != '0':
-                print(f"[Stock Service] Fluctuation Rank Error: {data.get('msg1')}")
-                return None
-                
-            return data.get('output', [])
-        except Exception as e:
-            print(f"[Stock Service] Request Error: {e}")
-            return None
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(url, headers=headers, params=params, timeout=10)
+                data = response.json()
 
-    def get_volume_rank(self):
-        """거래량 순위 조회"""
+                if data.get('rt_cd') != '0':
+                    print(f"[Stock Service] Fluctuation Rank Error: {data.get('msg1')}")
+                    return None
+
+                return data.get('output', [])
+            except Exception as e:
+                print(f"[Stock Service] Request Error: {e}")
+                return None
+
+    async def get_volume_rank(self):
+        """거래량 순위 조회 (상위 30개)"""
         headers = self._get_headers("FHPST01710000")
         if not headers: return None
 
         url = f"{self.domain}/uapi/domestic-stock/v1/quotations/volume-rank"
-        
+
         params = {
            "FID_COND_MRKT_DIV_CODE": "J",
            "FID_COND_SCR_DIV_CODE": "20171",
@@ -91,83 +92,51 @@ class KISRestClient:
            "FID_VOL_CNT": "",
            "FID_INPUT_DATE_1": ""
         }
-        
-        try:
-            r = requests.get(url, headers=headers, params=params, timeout=10)
-            data = r.json()
 
-            if data.get('rt_cd') == '0':
-                output = data.get('output', [])
-                # 템플릿 호환성을 위해 키 소문자 변환
-                return [{k.lower(): v for k, v in item.items()} for item in output]
-            else:
-                print(f"[Stock Service] Volume Rank Error: {data.get('msg1')}")
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(url, headers=headers, params=params, timeout=10)
+                data = response.json()
+
+                if data.get('rt_cd') == '0':
+                    output = data.get('output', [])
+                    # 템플릿 호환성을 위해 키 소문자 변환
+                    return [{k.lower(): v for k, v in item.items()} for item in output]
+                else:
+                    print(f"[Stock Service] Volume Rank Error: {data.get('msg1')}")
+                    return None
+            except Exception as e:
+                print(f"[Stock Service] Request Error: {e}")
                 return None
-        except Exception as e:
-            print(f"[Stock Service] Request Error: {e}")
-            return None
 
-    def get_current_price(self, iscd):
+    async def get_current_price(self, iscd):
         """특정 종목 현재가 조회"""
         headers = self._get_headers("FHKST01010100")
         if not headers: return None
 
         url = f"{self.domain}/uapi/domestic-stock/v1/quotations/inquire-price"
-        
+
         params = {
             "fid_cond_mrkt_div_code": "J",
             "fid_input_iscd": iscd
         }
-        
-        try:
-            r = requests.get(url, headers=headers, params=params, timeout=5)
-            data = r.json()
-            if data.get('rt_cd') == '0':
-                return data.get('output', {})
-            return None
-        except Exception as e:
-            print(f"[Stock Service] Get Price Error ({iscd}): {e}")
-            return None
 
-    def get_theme_rank(self):
-        """주요 테마별 등락률 순위"""
-        # 테마 정의는 나중에 DB나 설정 파일로 뺄 수도 있습니다.
-        themes = {
-            "반도체": ["005930", "000660", "042700"],
-            "2차전지": ["373220", "006400", "003670", "247540"],
-            "자동차": ["005380", "000270", "012330"],
-            "인터넷/플랫폼": ["035420", "035720"],
-            "바이오": ["207940", "068270", "019170"],
-            "엔터/콘텐츠": ["352820", "041510", "122870"],
-            "금융": ["105560", "055550", "086790"],
-            "방산": ["012450", "042660"],
-        }
-        
-        theme_results = []
-        
-        for theme_name, codes in themes.items():
-            total_rate = 0
-            count = 0
-            for code in codes:
-                data = self.get_current_price(code) # 내부 메서드 호출
-                if data and 'prdy_ctrt' in data:
-                    try:
-                        rate = float(data['prdy_ctrt'])
-                        total_rate += rate
-                        count += 1
-                    except:
-                        continue
-            
-            if count > 0:
-                avg_rate = total_rate / count
-                theme_results.append({
-                    'name': theme_name,
-                    'rate': round(avg_rate, 2),
-                    'is_rising': avg_rate > 0
-                })
-                
-        theme_results.sort(key=lambda x: x['rate'], reverse=True)
-        return theme_results
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(url, headers=headers, params=params, timeout=5)
+                data = response.json()
+                if data.get('rt_cd') == '0':
+                    return data.get('output', {})
+                return None
+            except Exception as e:
+                print(f"[Stock Service] Get Price Error ({iscd}): {e}")
+                return None
+
+    async def get_theme_rank(self):
+        """주요 테마별 등락률 순위 (비활성화)"""
+        return []
 
 # 싱글톤 인스턴스 생성
 kis_rest_client = KISRestClient()
+
+## theme rank 부분이 병목같음

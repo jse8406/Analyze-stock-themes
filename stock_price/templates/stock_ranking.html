@@ -253,7 +253,7 @@
                         <td class="rank-num {% if forloop.counter <= 3 %}rank-top{% endif %}">{{ forloop.counter }}</td>
                         <td class="stock-name-cell"
                             onclick="location.href='/stock_price/stock/detail/{{ item.stck_shrn_iscd }}/'">
-                            {{ item.hts_kor_isnm }}<span style="font-size:12px; color:#999;">{{ item.stck_shrn_iscd }}</span>
+                            {{ item.hts_kor_isnm }} <span style="font-size:12px; color:#999;">{{ item.stck_shrn_iscd }}</span>
                         </td>
                         <td class="price-align">{{ item.stck_prpr }}</td>
                         <td class="price-align">
@@ -291,8 +291,7 @@
                         <td class="rank-num {% if forloop.counter <= 3 %}rank-top{% endif %}">{{ forloop.counter }}</td>
                         <td class="stock-name-cell"
                             onclick="location.href='/stock_price/stock/detail/{{ item.mksc_shrn_iscd }}/'">
-                            {{ item.hts_kor_isnm }} <span style="font-size:12px; color:#999;">{{ item.mksc_shrn_iscd
-                                }}</span>
+                            {{ item.hts_kor_isnm }} <span style="font-size:12px; color:#999;">{{ item.mksc_shrn_iscd}}</span>
                         </td>
                         <td class="price-align">{{ item.stck_prpr }}</td>
                         <td class="price-align">
@@ -312,7 +311,8 @@
             </table>
         </div>
 
-        <!-- 테마 순위 (New) -->
+        <!-- 테마 순위 비활성화 -->
+        <!--
         <div id="theme" class="section-wrapper">
             <div class="theme-grid">
                 {% for theme in rank_theme %}
@@ -341,6 +341,7 @@
                 {% endfor %}
             </div>
         </div>
+        -->
 
     </div>
 

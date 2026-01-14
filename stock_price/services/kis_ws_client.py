@@ -2,7 +2,7 @@ import os
 import json
 import asyncio
 import websockets
-from collections import defaultdict  # <--- 추가됨: 개수 세기용
+from collections import defaultdict
 from channels.layers import get_channel_layer
 from ..serializers import StockRequestSerializer, StockResponseSerializer, StockAskingPriceResponseSerializer
 from dotenv import load_dotenv
@@ -26,11 +26,7 @@ class KISWebSocketClient:
         self.ws = None
         self.connected = False
         self.lock = asyncio.Lock()
-        
-        # [핵심 변경] 단순 set()이 아니라 종목별 시청자 수를 셉니다.
-        # 예: {'005930': 2, '035420': 1}
         self._subscriber_counts = defaultdict(int) 
-        
         self.logged_stocks = set()
         self.channel_layer = get_channel_layer()
         self.running = False
