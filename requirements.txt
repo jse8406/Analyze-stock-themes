@@ -6,3 +6,5 @@ channels-redis
 daphne
 python-dotenv
 requests
+
+openai
