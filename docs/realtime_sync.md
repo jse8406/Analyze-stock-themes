@@ -6,7 +6,7 @@
 ## 아키텍처
 
 ```mermaid
-graph LR
+graph TD
     A["KIS 랭킹 API"] -->|"1분마다 폴링"| B("백그라운드 워커");
     B -->|"조회"| C{"Redis 캐시와 비교"};
     C -->|"변경 없음"| D["대기 (Sleep)"];
