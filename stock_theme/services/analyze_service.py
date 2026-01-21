@@ -1,4 +1,5 @@
 import os
+import asyncio
 import json
 import logging
 from datetime import date
@@ -55,6 +56,9 @@ class ThemeAnalyzeService:
                 "name": name,
                 "news_headlines": news_list
             })
+            
+            # API Rate Limit (429) 방지
+            await asyncio.sleep(0.5)
 
         # 2. LLM 프롬프트 구성 (Micro-Theme 지향)
         prompt = f"""
@@ -180,7 +184,7 @@ class ThemeAnalyzeService:
         만약 속하지 않고, 이 종목만의 새로운 강력한 '단기 이슈/테마'가 있다면 새로운 테마명으로 정의하세요.
         단순한 등락이나 특별한 이유가 없다면 "None"을 반환하세요.
         
-        **주의**: 'reason' 필드에는 테마 ID나 내부 시스템 정보를 절대 언급하지 마세요. 사용자가 이해할 수 있는 자연어 설명만 포함하세요.
+        **주의**: 'reason' 필드에 "ID 55"와 같은 내부 식별자를 절대 포함하지 마세요. 이 텍스트는 최종 사용자에게 그대로 노출되므로 자연스러운 문장으로만 작성해야 합니다.
         
         [응답 형식 (JSON Only)]
         {{
@@ -202,6 +206,8 @@ class ThemeAnalyzeService:
                 ],
                 stream=False
             )
+            
+            content = response.choices[0].message.content
             
             # Robust JSON extraction using Regex
             import re

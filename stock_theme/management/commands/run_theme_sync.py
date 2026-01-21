@@ -24,6 +24,29 @@ class Command(BaseCommand):
 
     async def run_loop(self, sync_service):
         while True:
+            # Market Time Check (09:00 ~ 15:30 + Buffer, Weekdays)
+            from datetime import datetime
+            now = datetime.now()
+            
+            # 주말(5=토, 6=일)이거나 09:00 이전, 16:00 이후면 휴식
+            # (장 마감 후 조금 여유있게 16시까지는 수집 허용한다고 가정, 또는 사용자 요청대로 즉시 sleep)
+            # 보통 장 종료 후 15:40~50분까지는 순위 확정될 수 있으므로 16시로 설정
+            # 사용자 요청: "장이 종료되면" -> 15:30 이후
+            is_weekend = now.weekday() >= 5
+            is_market_open = 9 <= now.hour < 16 # 09:00 ~ 15:59 (simple check for now)
+            
+            # 더 정밀한 시간 체크 (09:00 ~ 15:30)
+            current_time = now.time()
+            start_time_limit = datetime.strptime("09:00:00", "%H:%M:%S").time()
+            end_time_limit = datetime.strptime("15:30:00", "%H:%M:%S").time() # 정규장 종료
+            
+            in_operating_hours = start_time_limit <= current_time <= end_time_limit
+
+            if is_weekend or not in_operating_hours:
+                self.stdout.write(f"[{now.strftime('%H:%M:%S')}] Market Closed. Sleeping for 5 minutes... 🌙")
+                await asyncio.sleep(300) # 5분 대기
+                continue
+
             try:
                 # 1. Fetch Current Ranking
                 start_time = time.time()

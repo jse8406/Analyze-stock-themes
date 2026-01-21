@@ -1,4 +1,5 @@
 import os
+import time
 import json
 import logging
 import urllib.request
@@ -49,6 +50,8 @@ class NewsCollector:
         # 1. 관련도순 4개 (핵심 이슈 파악)
         sim_news = self._fetch_naver_news(stock_name, 4, 'sim')
         
+        
+        time.sleep(0.2)
         # 2. 최신순 2개 (속보성 이슈 파악)
         date_news = self._fetch_naver_news(stock_name, 2, 'date')
         
