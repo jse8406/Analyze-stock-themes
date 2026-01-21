@@ -52,11 +52,12 @@
                             <div>
                                 <span class="stock-name">{{ theme_stock.stock.name }}</span>
                                 <span class="stock-code">{{ theme_stock.stock.short_code }}</span>
+                                {% if theme_stock.created_at %}
+                                <span class="stock-time" style="color: #888; font-size: 0.8em; margin-left: 5px;">{{ theme_stock.created_at|date:"H:i" }}</span>
+                                {% endif %}
                             </div>
                         </div>
-                        {% if theme_stock.reason %}
-                        <div class="reason-badge">{{ theme_stock.reason }}</div>
-                        {% endif %}
+
                     </div>
                     {% endfor %}
                 </div>

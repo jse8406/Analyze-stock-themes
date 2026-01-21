@@ -27,6 +27,7 @@ class ThemeStock(models.Model):
     theme = models.ForeignKey(Theme, on_delete=models.CASCADE, related_name='stocks', verbose_name="테마")
     stock = models.ForeignKey(StockInfo, on_delete=models.CASCADE, related_name='themes', verbose_name="종목")
     reason = models.TextField(verbose_name="편입 사유", blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="편입 시각", null=True)
 
     class Meta:
         db_table = 'theme_stock'

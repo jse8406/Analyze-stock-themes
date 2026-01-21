@@ -12,5 +12,5 @@ class ThemeAdmin(admin.ModelAdmin):
 
 @admin.register(ThemeStock)
 class ThemeStockAdmin(admin.ModelAdmin):
-    list_display = ('theme', 'stock', 'reason')
+    list_display = ('theme', 'stock', 'reason', 'created_at')
     list_filter = ('theme__date',)

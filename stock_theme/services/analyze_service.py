@@ -11,6 +11,17 @@ from stock_theme.models import Theme, ThemeStock
 from stock_price.models import StockInfo
 from .news_collector import NewsCollector
 
+from .news_collector import NewsCollector
+
+try:
+    from langsmith import traceable
+except ImportError:
+    # Fallback if langsmith is not installed
+    def traceable(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
 logger = logging.getLogger(__name__)
 
 class ThemeAnalyzeService:
@@ -152,8 +163,20 @@ class ThemeAnalyzeService:
         """
         print(f"[ThemeService] Incremental Analysis for {name} ({code})...")
         
-        # 1. 오늘 날짜의 기존 테마 목록 조회 (Sync to Async)
         today = date.today()
+
+        # 0. 중복 분석 방지: 이미 오늘자 테마에 소속되어 있다면 분석 스킵
+        # Themes created today that contain this stock
+        already_processed = await sync_to_async(ThemeStock.objects.filter(
+            stock__short_code=code, 
+            theme__date=today
+        ).exists)()
+
+        if already_processed:
+            print(f"[ThemeService] SKIP: {name} ({code}) is already in a theme today.")
+            return True
+
+        # 1. 오늘 날짜의 기존 테마 목록 조회 (Sync to Async)
         existing_themes = await sync_to_async(list)(Theme.objects.filter(date=today))
         
         existing_themes_prompt = []
@@ -170,55 +193,9 @@ class ThemeAnalyzeService:
         news_list = self.news_collector.collect_news(name)
         
         # 3. LLM 프롬프트 구성
-        prompt = f"""
-        다음은 현재 실시간 급등 순위에 새로 진입한 주식 '{name}'({code})과 관련 뉴스입니다.
-        
-        [뉴스 헤드라인]
-        {json.dumps(news_list, ensure_ascii=False, indent=2)}
-        
-        [현재 활성화된 테마 목록]
-        {existing_themes_text}
-        
-        [지시사항]
-        이 종목이 위 '현재 활성화된 테마' 중 하나에 강력하게 속한다면 그 **테마 ID(숫자)만** 반환하세요.
-        만약 속하지 않고, 이 종목만의 새로운 강력한 '단기 이슈/테마'가 있다면 새로운 테마명으로 정의하세요.
-        단순한 등락이나 특별한 이유가 없다면 "None"을 반환하세요.
-        
-        **주의**: 'reason' 필드에 "ID 55"와 같은 내부 식별자를 절대 포함하지 마세요. 이 텍스트는 최종 사용자에게 그대로 노출되므로 자연스러운 문장으로만 작성해야 합니다.
-        
-        [응답 형식 (JSON Only)]
-        {{
-            "action": "JOIN" | "CREATE" | "NONE",
-            "theme_id": 123 (JOIN일 경우 테마 ID),
-            "new_theme_name": "새로운 테마명 (CREATE일 경우)",
-            "new_theme_desc": "새로운 테마 설명 (CREATE일 경우)",
-            "reason": "테마 편입 또는 생성 이유 (한 문장)"
-        }}
-        """
-
-        # 4. LLM 호출
+        # 4. Agentic Analysis Loop (Replaces simple LLM call)
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "You are a financial analyst. Respond only in JSON."},
-                    {"role": "user", "content": prompt}
-                ],
-                stream=False
-            )
-            
-            content = response.choices[0].message.content
-            
-            # Robust JSON extraction using Regex
-            import re
-            match = re.search(r'(\{.*\})', content, re.DOTALL)
-            if match:
-                json_str = match.group(1)
-                result = json.loads(json_str)
-            else:
-                # Fallback: Try raw content if regex fails
-                result = json.loads(content)
-
+            result = self._run_agentic_loop(name, code, news_list, existing_themes_text)
             
             action = result.get("action")
             reason = result.get("reason", "")
@@ -236,6 +213,73 @@ class ThemeAnalyzeService:
             logger.error(f"Incremental Analysis Failed: {e}")
             print(f"Error ({name}): {e}")
             return False
+
+    @traceable(run_type="chain", name="Theme Analyst Agent")
+    def _run_agentic_loop(self, name, code, news_list, existing_themes_text):
+        """
+        Agentic Workflow:
+        1. Hypothesis: Generate initial thought based on news.
+        2. Critique: Check against existing themes and guidelines.
+        3. Decision: Final Output.
+        """
+        
+        # Step 1: Hypothesis & Critique (Chain-of-Thought Prompt)
+        prompt = f"""
+        You are a highly skilled Financial Theme Analyst.
+        
+        [Target]
+        Stock: {name} ({code})
+        News: {json.dumps(news_list, ensure_ascii=False)}
+        
+        [Context - Existing Themes]
+        {existing_themes_text}
+        
+        [Task]
+        Perform a step-by-step analysis to decide if this stock belongs to a theme.
+        
+        1. **Hypothesis**: Based on the news, what is the specific market driver?
+        2. **Peer Check**: Does this match any existing theme in [Context]?
+        3. **Critique**: Is the reason strong enough? (Reject generic sectors like 'Semiconductor', 'Bio').
+        4. **Action**: Choose one of [JOIN, CREATE, NONE].
+        
+        **Constraint**:
+        - If joining an existing theme, provide the 'theme_id'.
+        - If creating a new theme, provide 'new_theme_name' (specific event-driven).
+        - **Crucial**: 'reason' must be a user-facing natural language sentence. NO ID mentions.
+        
+        [Output Format (JSON)]
+        {{
+            "thought_process": "Your internal monologue and critique...",
+            "action": "JOIN" | "CREATE" | "NONE",
+            "theme_id": 123 (if JOIN),
+            "new_theme_name": "Name" (if CREATE),
+            "new_theme_desc": "Desc" (if CREATE),
+            "reason": "Public reason string (No IDs)"
+        }}
+        """
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": "You are a rational financial agent. Think step-by-step."},
+                {"role": "user", "content": prompt}
+            ],
+            stream=False
+        )
+        
+        content = response.choices[0].message.content
+        
+        # Parse JSON
+        import re
+        match = re.search(r'(\{.*\})', content, re.DOTALL)
+        if match:
+            return json.loads(match.group(1))
+        else:
+            return json.loads(content)
+
+            
+            action = result.get("action")
+
 
     def _save_incremental_result(self, code, name, result, today):
         action = result.get("action")
