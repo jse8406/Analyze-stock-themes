@@ -17,6 +17,7 @@ class DailyThemeListView(ListView):
         selected_date_str = self.request.GET.get('date')
         
         # 2. Base Queryset
+        #theme에 대한 stocks와 theme stocks에 대한 stock을 미리 가져옴
         queryset = Theme.objects.prefetch_related('stocks', 'stocks__stock').all()
         
         # 3. Filter
@@ -27,6 +28,9 @@ class DailyThemeListView(ListView):
             latest_theme = Theme.objects.order_by('-date').first()
             if latest_theme:
                 queryset = queryset.filter(date=latest_theme.date)
+                
+        # 4. Sort by Stock Count (Descending)
+        queryset = queryset.annotate(stock_count=Count('stocks')).order_by('-stock_count', '-created_at')
                 
         return queryset
 
