@@ -25,7 +25,13 @@ class DailyThemeListView(ListView):
         
         # 3. Filter
         if selected_date_str:
-            queryset = queryset.filter(date=selected_date_str)
+            try:
+                from django.core.exceptions import ValidationError
+                queryset = queryset.filter(date=selected_date_str)
+            except ValidationError:
+                # If date format is invalid, fallback to empty or default behavior (e.g. latest date)
+                # Here we choose to return empty queryset for invalid date to indicate "no data found for this weird date"
+                queryset = queryset.none()
         else:
             # Default to the latest date available
             latest_theme = Theme.objects.order_by('-date').first()

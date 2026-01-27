@@ -1,7 +1,8 @@
 
 from django.test import TestCase
 from .kis_auth import get_access_token, get_approval_key
-
+import unittest
+from unittest.mock import patch
 class KISAuthTokenTest(TestCase):
     def test_get_approval_key(self):
         """
@@ -34,3 +35,41 @@ class KISAuthTokenTest(TestCase):
         print("[TEST] 토큰 캐싱 동작 확인!")
 
 
+    @patch('auth.kis_auth.requests.post')
+    def test_get_approval_key_failure(self, mock_post):
+        """
+        [Edge Case] approval_key 발급 요청 실패 시 None 반환 테스트
+        """
+        # Mocking a failed response (e.g., 500 Server Error)
+        mock_response = unittest.mock.Mock()
+        mock_response.status_code = 500
+        mock_post.return_value = mock_response
+
+        result = get_approval_key()
+        self.assertIsNone(result, "Should return None on API failure")
+        print("[TEST] Approval Key 발급 실패 처리 확인완료")
+
+    @patch('auth.kis_auth.requests.post')
+    def test_get_approval_key_exception(self, mock_post):
+        """
+        [Edge Case] approval_key 발급 중 예외 발생 시 None 반환 테스트
+        """
+        mock_post.side_effect = Exception("Network Error")
+        
+        result = get_approval_key()
+        self.assertIsNone(result, "Should return None on Exception")
+        print("[TEST] Approval Key 예외 처리 확인완료")
+
+    @patch('auth.kis_auth.requests.post')
+    def test_get_access_token_failure(self, mock_post):
+        """
+        [Edge Case] access_token 발급 요청 실패 시 None 반환 테스트
+        """
+        mock_response = unittest.mock.Mock()
+        mock_response.status_code = 400
+        mock_post.return_value = mock_response
+        
+        # force_refresh=True to bypass cache and hit the mock
+        result = get_access_token(force_refresh=True)
+        self.assertIsNone(result, "Should return None on API failure")
+        print("[TEST] Access Token 발급 실패 처리 확인완료")
